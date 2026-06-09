@@ -44,9 +44,11 @@ describe("agent-supervisor-semantics classifySession", () => {
 
   it("keeps debugging, done, and subagent states richer than generic working", () => {
     assert.strictEqual(classifySession(session({ badge: "interrupted", lastEvent: { rawEvent: "PostToolUseFailure" } })).kind, "error");
+    assert.strictEqual(classifySession(session({ state: "working", currentTool: "Grep" })).kind, "debugging");
     assert.strictEqual(classifySession(session({ state: "idle", badge: "done", lastEvent: { rawEvent: "Stop" } })).kind, "done");
     assert.strictEqual(classifySession(session({ state: "juggling", subagentCount: 1 })).kind, "subagent-single");
     assert.strictEqual(classifySession(session({ state: "juggling", subagentCount: 3 })).kind, "subagent-multi");
+    assert.strictEqual(classifySession(session({ state: "carrying", lastEvent: { rawEvent: "WorktreeCreate" } })).kind, "preparing");
   });
 });
 
@@ -55,9 +57,13 @@ describe("agent-supervisor-semantics inferDisplayHintFromTool", () => {
     const displayHintMap = {
       "clawd-working-debugger.svg": "debugger",
       "clawd-working-building.svg": "building",
+      "clawd-headphones-groove.svg": "headphones",
+      "clawd-working-thinking.svg": "thinking",
     };
     assert.strictEqual(inferDisplayHintFromTool({ state: "working", toolName: "Grep", displayHintMap }), "clawd-working-debugger.svg");
     assert.strictEqual(inferDisplayHintFromTool({ state: "working", toolName: "Bash", displayHintMap }), "clawd-working-building.svg");
+    assert.strictEqual(inferDisplayHintFromTool({ state: "juggling", event: "SubagentStart", toolName: "Task", displayHintMap }), "clawd-headphones-groove.svg");
+    assert.strictEqual(inferDisplayHintFromTool({ state: "thinking", event: "AfterAgentThought", displayHintMap }), "clawd-working-thinking.svg");
     assert.strictEqual(inferDisplayHintFromTool({ state: "idle", toolName: "Bash", displayHintMap }), undefined);
   });
 });

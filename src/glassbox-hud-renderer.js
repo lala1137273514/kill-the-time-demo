@@ -14,6 +14,7 @@ const statusPhase = document.getElementById("statusPhase");
 const statusDetail = document.getElementById("statusDetail");
 const statusRecent = document.getElementById("statusRecent");
 const statusChip = document.getElementById("statusChip");
+const statusStack = document.getElementById("statusStack");
 const usageMeta = document.getElementById("usageMeta");
 const usageGrid = document.getElementById("usageGrid");
 const toolbar = document.getElementById("toolbar");
@@ -62,6 +63,40 @@ function titleFor(session) {
   return session.displayTitle || session.sessionTitle || session.id || "";
 }
 
+function sessionLineTitle(session, sem) {
+  const title = titleFor(session);
+  const agent = agentLabelOf(session);
+  if (title && title !== session.id) return `${agent} · ${title}`;
+  return `${agent} · ${sem.phase}`;
+}
+
+function renderSessionStack(sessions) {
+  if (!statusStack) return;
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    statusStack.innerHTML = "";
+    return;
+  }
+  const maxVisible = sessions.length > 3 ? 2 : 3;
+  const visible = sessions.slice(0, maxVisible);
+  const rows = visible.map((session) => {
+    const sem = classifySession(session);
+    const title = sessionLineTitle(session, sem);
+    return `<div class="session-line" title="${escapeHtml(`${title} · ${sem.detail} · ${sem.recent}`)}">
+      <i class="session-dot ${escapeHtml(sem.dot || "quiet")}"></i>
+      <span class="session-title">${escapeHtml(title)}</span>
+      <span class="session-state">${escapeHtml(sem.chip || sem.kind)}</span>
+    </div>`;
+  });
+  if (sessions.length > visible.length) {
+    rows.push(`<div class="session-line" title="${escapeHtml(`还有 ${sessions.length - visible.length} 个会话`)}">
+      <i class="session-dot quiet"></i>
+      <span class="session-title">${escapeHtml(`还有 ${sessions.length - visible.length} 个会话`)}</span>
+      <span class="session-state">more</span>
+    </div>`);
+  }
+  statusStack.innerHTML = rows.join("");
+}
+
 function orderedHudSessions(snapshot) {
   const sessions = Array.isArray(snapshot && snapshot.sessions) ? snapshot.sessions : [];
   const byId = new Map(sessions.map((session) => [session.id, session]));
@@ -86,10 +121,11 @@ function renderStatus(payload) {
     statusDetail.textContent = sem.detail;
     statusRecent.textContent = sem.recent;
     statusChip.textContent = sem.chip;
+    renderSessionStack([]);
     return;
   }
 
-  const more = sessions.length > 1 ? ` · +${sessions.length - 1}` : "";
+  const more = sessions.length > 1 ? ` · ${sessions.length} 个会话` : "";
   const agent = `${agentLabelOf(current)}${more}`;
   const title = titleFor(current) || agent;
   statusAgent.textContent = agent;
@@ -102,6 +138,7 @@ function renderStatus(payload) {
   statusRecent.title = `${title} · ${sem.recent}`;
   statusChip.textContent = sem.chip;
   statusChip.title = sem.animation;
+  renderSessionStack(sessions);
 }
 
 function windowByKey(windows, key) {

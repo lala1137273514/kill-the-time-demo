@@ -83,4 +83,17 @@ describe("display_svg session hints (updateSession path)", () => {
     api.updateSession("c1", "thinking", "AfterAgentThought", baseOpts({ displayHint: "clawd-working-thinking.svg" }));
     assert.strictEqual(api.getSvgOverride("thinking"), "clawd-working-thinking.svg");
   });
+
+  it("infers richer Clawd animations from tool and event names", () => {
+    api.updateSession("grep", "working", "PreToolUse", baseOpts({ toolName: "Grep" }));
+    assert.strictEqual(api.getSvgOverride("working"), "clawd-working-debugger.svg");
+
+    api.updateSession("grep", "idle", "Stop", baseOpts());
+    api.updateSession("bash", "working", "PreToolUse", baseOpts({ toolName: "Bash" }));
+    assert.strictEqual(api.getSvgOverride("working"), "clawd-working-building.svg");
+
+    api.updateSession("bash", "idle", "Stop", baseOpts());
+    api.updateSession("task", "working", "PreToolUse", baseOpts({ toolName: "Task" }));
+    assert.strictEqual(api.getSvgOverride("working"), "clawd-headphones-groove.svg");
+  });
 });

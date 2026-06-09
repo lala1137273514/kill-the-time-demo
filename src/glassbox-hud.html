@@ -82,12 +82,12 @@
   }
 
   .status-card {
-    height: 78px;
-    padding: 9px 10px 10px;
+    height: 96px;
+    padding: 8px 10px 9px;
     display: grid;
     grid-template-columns: 10px 1fr auto;
-    grid-template-rows: auto auto auto;
-    gap: 5px 8px;
+    grid-template-rows: auto auto auto 1fr;
+    gap: 4px 8px;
     align-items: center;
   }
   .status-dot {
@@ -109,7 +109,8 @@
     gap: 8px;
     align-items: center;
   }
-  .status-agent, .status-phase, .status-detail, .status-recent, .status-chip {
+  .status-agent, .status-phase, .status-detail, .status-recent, .status-chip,
+  .session-title, .session-state {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -138,6 +139,41 @@
     font-size: 9.5px;
     line-height: 1;
     font-weight: 760;
+  }
+  .status-stack {
+    grid-column: 1 / 4;
+    min-width: 0;
+    align-self: end;
+    display: grid;
+    gap: 2px;
+  }
+  .session-line {
+    min-width: 0;
+    height: 13px;
+    display: grid;
+    grid-template-columns: 7px minmax(0, 1fr) auto;
+    gap: 5px;
+    align-items: center;
+    color: var(--muted);
+    font-size: 9.5px;
+    line-height: 1;
+  }
+  .session-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: rgba(255,255,255,0.34);
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.045);
+  }
+  .session-dot.running { background: var(--good); }
+  .session-dot.attention { background: var(--warn); }
+  .session-dot.done { background: var(--accent); }
+  .session-dot.bad { background: var(--bad); }
+  .session-title { min-width: 0; color: rgba(248,250,252,0.82); }
+  .session-state {
+    max-width: 58px;
+    color: var(--subtle);
+    font-size: 9px;
+    font-weight: 760;
+    text-align: right;
   }
 
   .usage-card {
@@ -218,6 +254,7 @@
     <div id="statusPhase" class="status-phase">待命</div>
     <div id="statusDetail" class="status-detail">鼠标靠近就会醒来</div>
     <div id="statusRecent" class="status-recent">眼动 / 呼吸 / 睡眠序列就绪</div>
+    <div id="statusStack" class="status-stack"></div>
   </section>
 
   <section class="hud-card usage-card">

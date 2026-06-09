@@ -7,6 +7,7 @@ const path = require("node:path");
 
 const renderer = fs.readFileSync(path.join(__dirname, "..", "src", "glassbox-hud-renderer.js"), "utf8");
 const main = fs.readFileSync(path.join(__dirname, "..", "src", "main.js"), "utf8");
+const html = fs.readFileSync(path.join(__dirname, "..", "src", "glassbox-hud.html"), "utf8");
 
 function extractButtonBlock() {
   const match = renderer.match(/const BUTTONS = \[([\s\S]*?)\];/);
@@ -52,3 +53,11 @@ test("main process handles every HUD quick action", () => {
   assert.match(main, /function captureHudScreenshot/);
 });
 
+test("HUD status card has a compact multi-session stack", () => {
+  assert.match(html, /id="statusStack"/);
+  assert.match(html, /\.status-stack/);
+  assert.match(renderer, /function renderSessionStack/);
+  assert.match(renderer, /maxVisible/);
+  assert.match(renderer, /sessions\.slice\(0,\s*maxVisible\)/);
+  assert.match(renderer, /个会话/);
+});

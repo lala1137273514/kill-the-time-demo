@@ -390,11 +390,6 @@ module.exports = function initMenu(ctx) {
         click: () => ctx.openSettingsWindow(),
       },
     );
-    // #329: surface the update item in the right-click context menu too.
-    if (typeof ctx.getUpdateMenuItem === "function") {
-      const updateItem = ctx.getUpdateMenuItem();
-      if (updateItem) template.push({ type: "separator" }, updateItem);
-    }
     template.push(
       { type: "separator" },
       { label: t("quit"), click: () => requestAppQuit() },
@@ -448,4 +443,3 @@ module.exports = function initMenu(ctx) {
     requestAppQuit,
   };
 };
-

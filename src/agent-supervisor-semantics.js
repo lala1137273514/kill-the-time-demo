@@ -7,10 +7,11 @@
 
 const WAITING_EVENTS = new Set(["PermissionRequest", "Elicitation"]);
 const INPUT_EVENTS = new Set(["Notification"]);
-const COMPACTING_EVENTS = new Set(["PreCompact", "PreCompress"]);
-const COMPACTED_EVENTS = new Set(["PostCompact", "event_msg:context_compacted"]);
-const ERROR_EVENTS = new Set(["PostToolUseFailure", "StopFailure", "ApiError"]);
+const COMPACTING_EVENTS = new Set(["PreCompact", "PreCompress", "session_before_compact"]);
+const COMPACTED_EVENTS = new Set(["PostCompact", "PostCompress", "event_msg:context_compacted"]);
+const ERROR_EVENTS = new Set(["PostToolUseFailure", "StopFailure", "ApiError", "ToolUseError"]);
 const DONE_EVENTS = new Set(["Stop", "PostCompact", "event_msg:task_complete"]);
+const PREPARING_EVENTS = new Set(["WorktreeCreate", "WorktreeReady", "WorkspacePrepare"]);
 
 const AGENT_LABELS = Object.freeze({
   "claude-code": "Claude Code",
@@ -45,11 +46,20 @@ const EVENT_LABELS = Object.freeze({
   SubagentStop: "子任务结束",
   PreCompact: "压缩上下文",
   PreCompress: "压缩上下文",
+  PostCompress: "压缩完成",
   PostCompact: "压缩完成",
+  AfterAgentThought: "继续思考",
   WorktreeCreate: "准备工作区",
+  WorktreeReady: "工作区就绪",
+  WorkspacePrepare: "准备工作区",
+  ToolUseError: "工具异常",
   "event_msg:task_complete": "任务完成",
   "event_msg:context_compacted": "上下文已压缩",
 });
+
+const DEBUG_TOOL_RE = /debug|diagnostic|test|lint|grep|glob|search|read|web|inspect|check|scan|query|list|ls|find|ripgrep|rg/i;
+const BUILD_TOOL_RE = /bash|shell|exec|terminal|build|compile|install|npm|pnpm|yarn|bun|write|edit|patch|apply|multi.?edit|delete|move|copy|create|mkdir/i;
+const SUBAGENT_TOOL_RE = /^task$|subagent|agent|delegate|parallel|fan.?out|orchestr/i;
 
 function rawEventOf(session) {
   return session && session.lastEvent && typeof session.lastEvent.rawEvent === "string"
@@ -72,6 +82,18 @@ function agentLabelOf(session) {
 function toolLabelOf(session) {
   const tool = truncate(session && session.currentTool, 22);
   return tool || "";
+}
+
+function isDebuggingTool(tool) {
+  return DEBUG_TOOL_RE.test(String(tool || ""));
+}
+
+function isBuildTool(tool) {
+  return BUILD_TOOL_RE.test(String(tool || ""));
+}
+
+function isSubagentTool(tool) {
+  return SUBAGENT_TOOL_RE.test(String(tool || ""));
 }
 
 function eventLabelOf(rawEvent) {
@@ -237,10 +259,23 @@ function classifySession(session) {
   }
 
   if (state === "working") {
+    if (isDebuggingTool(tool)) {
+      return {
+        kind: "debugging",
+        phase: tool ? `检查 ${tool}` : "调试 / 检查",
+        chip: "debug",
+        dot: "running",
+        headline: `${agent} 正在检查`,
+        detail: tool ? `正在用 ${tool} 查问题` : "正在读代码、跑检查或定位问题",
+        recent,
+        animation: "debugging",
+        waiting: false,
+      };
+    }
     return {
       kind: "working",
-      phase: tool ? `执行 ${tool}` : "执行中",
-      chip: tool || "working",
+      phase: tool && isBuildTool(tool) ? `构建 / 写入` : (tool ? `执行 ${tool}` : "执行中"),
+      chip: tool && isBuildTool(tool) ? "build" : (tool || "working"),
       dot: "running",
       headline: `${agent} 正在干活`,
       detail: tool ? `当前工具：${tool}` : "正在调用工具或写入改动",
@@ -250,7 +285,7 @@ function classifySession(session) {
     };
   }
 
-  if (state === "carrying") {
+  if (PREPARING_EVENTS.has(raw) || state === "carrying") {
     return {
       kind: "preparing",
       phase: "准备工作区",
@@ -290,14 +325,21 @@ function inferDisplayHintFromTool({ state, event, toolName, displayHintMap = {} 
   if (state !== "working" && state !== "thinking" && state !== "juggling") return undefined;
   const name = String(toolName || "").toLowerCase();
   const candidates = [];
+  if (event === "SubagentStart" || isSubagentTool(name)) {
+    candidates.push("clawd-headphones-groove.svg", "clawd-working-juggling.svg", "clawd-working-conducting.svg");
+  }
+  if (event === "AfterAgentThought") {
+    candidates.push("clawd-working-thinking.svg");
+  }
   if (
     event === "PostToolUseFailure"
-    || /debug|diagnostic|test|lint|grep|glob|search|read|web|inspect|check/.test(name)
+    || ERROR_EVENTS.has(event)
+    || isDebuggingTool(name)
   ) {
-    candidates.push("clawd-working-debugger.svg");
+    candidates.push("clawd-working-debugger.svg", "clawd-idle-reading.svg", "clawd-working-thinking.svg");
   }
-  if (/bash|shell|exec|build|compile|write|edit|patch|apply/.test(name)) {
-    candidates.push("clawd-working-building.svg");
+  if (isBuildTool(name)) {
+    candidates.push("clawd-working-building.svg", "clawd-working-typing.svg");
   }
   for (const candidate of candidates) {
     if (displayHintMap && displayHintMap[candidate] != null) return candidate;
@@ -312,6 +354,7 @@ module.exports = {
   COMPACTED_EVENTS,
   ERROR_EVENTS,
   DONE_EVENTS,
+  PREPARING_EVENTS,
   AGENT_LABELS,
   rawEventOf,
   agentLabelOf,
@@ -320,5 +363,8 @@ module.exports = {
   classifySession,
   isWaitingSession,
   isCompactingSession,
+  isDebuggingTool,
+  isBuildTool,
+  isSubagentTool,
   inferDisplayHintFromTool,
 };

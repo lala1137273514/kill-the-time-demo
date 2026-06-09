@@ -16,7 +16,7 @@
 const path = require("path");
 
 const WIDTH = 340;
-const HEIGHT = 244;        // three staggered cards: status + usage + actions
+const HEIGHT = 264;        // three staggered cards: status stack + usage + actions
 const GAP = 3;
 const MARGIN = 8;
 const DISMISS_MS = 700;    // generous bridge from pet to HUD; cancelled on HUD enter

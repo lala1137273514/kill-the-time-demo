@@ -201,6 +201,43 @@ describe("menu send-to-display", () => {
   });
 });
 
+describe("context menu demo trimming", () => {
+  it("keeps Check for Updates out of the right-click menu", () => {
+    const fakeElectron = {
+      app: { quit: () => {}, setActivationPolicy: () => {}, dock: { show: () => {}, hide: () => {} } },
+      BrowserWindow: function BrowserWindow() {},
+      Menu: {
+        buildFromTemplate(template) {
+          return { template };
+        },
+      },
+      Tray: function Tray() {},
+      nativeImage: {
+        createFromPath() {
+          return {
+            resize() { return this; },
+            setTemplateImage() {},
+          };
+        },
+      },
+      screen: {
+        getAllDisplays: () => [{ id: 1, bounds: { x: 0, y: 0, width: 1920, height: 1080 }, workArea: { x: 0, y: 0, width: 1920, height: 1040 } }],
+        getCursorScreenPoint: () => ({ x: 0, y: 0 }),
+        getDisplayNearestPoint: () => ({ id: 1 }),
+      },
+    };
+    const initMenu = loadMenuWithElectron(fakeElectron);
+    const ctx = buildBaseCtx({
+      getUpdateMenuItem: () => ({ label: "Check for Updates", click: () => {} }),
+    });
+
+    const menu = initMenu(ctx);
+    menu.buildContextMenu();
+
+    assert.ok(!ctx.contextMenu.template.some((item) => item && item.label === "Check for Updates"));
+  });
+});
+
 describe("menu recovery action", () => {
   it("adds a tray item that brings the pet back to the primary display", () => {
     const fakeElectron = {
