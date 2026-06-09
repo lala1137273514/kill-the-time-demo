@@ -1723,6 +1723,7 @@ if (glassboxEnabled) {
     const glassboxCapture = require("./glassbox-capture");
     const glassboxDispatch = require("./glassbox-dispatch");
     const glassboxScriptDispatch = require("./glassbox-script-dispatch");
+    const glassboxAgentLauncher = require("./glassbox-agent-launcher");
     const hasCommand = (name) => {
       try {
         const r = require("node:child_process").spawnSync(process.platform === "win32" ? "where" : "command", process.platform === "win32" ? [name] : ["-v", name], {
@@ -1845,6 +1846,10 @@ if (glassboxEnabled) {
           }
         );
       },
+      openAgent: (target, opts = {}) => glassboxAgentLauncher.openAgent(target, {
+        ...opts,
+        codexBin: resolveCodexBin(),
+      }),
       getSessionIdle: (sid) => {
         const snap = (_state && typeof _state.buildSessionSnapshot === "function")
           ? _state.buildSessionSnapshot() : { sessions: [] };

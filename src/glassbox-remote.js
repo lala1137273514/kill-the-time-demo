@@ -19,6 +19,7 @@
 
 const { planDispatch } = require("./glassbox-dispatch");
 const { createConversation } = require("./glassbox-conversation");
+const { routeLocalCommand } = require("./glassbox-intent");
 
 // Collapse a long prompt / agent output into one short spoken line. Used for the
 // pre-dispatch recap ("我要让它：… 对吗？") and the completion summary — the small
@@ -57,6 +58,7 @@ class GlassboxRemote {
     // most-recent tracked session's cwd); falls back to the static defaultCwd.
     this.getDefaultCwd = typeof deps.getDefaultCwd === "function" ? deps.getDefaultCwd : () => this.defaultCwd;
     this.getDefaultAgent = typeof deps.getDefaultAgent === "function" ? deps.getDefaultAgent : () => "claude";
+    this.openAgent = typeof deps.openAgent === "function" ? deps.openAgent : null;
     this.log = typeof deps.log === "function" ? deps.log : () => {};
     // Semantic phase callback for middle-state feedback (direction 1). The pet /
     // input bar map these phases to visible state; default no-op keeps it
@@ -77,6 +79,11 @@ class GlassboxRemote {
     this.onPhase("thinking");
     this.conversation.appendUser(text);
 
+    const local = routeLocalCommand(text);
+    if (local.action === "open-agent") {
+      return this._openAgent(local);
+    }
+
     // Resolve the foreground window first (cheap — no screenshot yet) so the
     // model has context to refine the prompt. Failure is non-fatal: permission
     // words still work without it.
@@ -96,6 +103,7 @@ class GlassboxRemote {
     } catch (err) {
       this.log(`glassbox-remote: orchestrate failed: ${err && err.message}`);
       this.onPhase("error");
+      this.speak("路由模型没连上，我没法判断这句话要派给谁。去设置里检查一下 LLM 配置。");
       return { action: "error", error: err && err.message };
     }
 
@@ -122,6 +130,27 @@ class GlassboxRemote {
         return decision;
       default:
         return decision; // "none" / unknown — stay quiet
+    }
+  }
+
+  _openAgent(decision) {
+    if (!this.openAgent) {
+      this.onPhase("error");
+      this.speak("这版还没有接打开工具的本地动作");
+      return { ...decision, action: "error", error: "openAgent unavailable" };
+    }
+    try {
+      this.onPhase("dispatching");
+      const handle = this.openAgent(decision.target, { cwd: this.getDefaultCwd() });
+      this.onPhase("running");
+      const label = (handle && handle.label) || (decision.target === "codex" ? "Codex" : decision.target === "terminal" ? "终端" : "Claude");
+      this.speak(`我把 ${label} 叫出来了`);
+      return decision;
+    } catch (err) {
+      this.log(`glassbox-remote: open agent failed: ${err && err.message}`);
+      this.onPhase("error");
+      this.speak("没能打开工具，你看下终端或 PATH 配置");
+      return { ...decision, action: "error", error: err && err.message };
     }
   }
 

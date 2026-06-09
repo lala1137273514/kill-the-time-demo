@@ -14,11 +14,29 @@
 // (不批准/不同意…) so "不批准" denies instead of matching the embedded "批准".
 const DENY_RE = /(不批准|别批准|不同意|不通过|不允许|拒绝|驳回|否决|不行|不可以|不要|别动|取消|算了|停一下|停下|no|deny|cancel)/i;
 const APPROVE_RE = /(批准|通过|同意|确认|授权|允许|approve|allow)/i;
+const OPEN_RE = /(打开|启动|唤起|叫出|拉起|开一下|开开|open|launch|start)/i;
 
 function normalize(text) {
   return String(text || "")
     .trim()
     .replace(/[\s，。！？、,.!?]+/g, "");
+}
+
+function routeLocalCommand(rawText) {
+  const text = String(rawText || "").trim();
+  if (!text) return { action: "none", text: "" };
+  const norm = normalize(text).toLowerCase();
+  if (!OPEN_RE.test(norm)) return { action: "task", text };
+  if (/claude|claudecode|克劳德/.test(norm)) {
+    return { action: "open-agent", target: "claude", text };
+  }
+  if (/codex|科德/.test(norm)) {
+    return { action: "open-agent", target: "codex", text };
+  }
+  if (/terminal|终端|命令行/.test(norm)) {
+    return { action: "open-agent", target: "terminal", text };
+  }
+  return { action: "task", text };
 }
 
 // route(text, ctx) -> { action, text }
@@ -45,4 +63,4 @@ function routeVoiceCommand(rawText, ctx = {}) {
   return { action: "task", text };
 }
 
-module.exports = { routeVoiceCommand, APPROVE_RE, DENY_RE, normalize };
+module.exports = { routeVoiceCommand, routeLocalCommand, APPROVE_RE, DENY_RE, OPEN_RE, normalize };

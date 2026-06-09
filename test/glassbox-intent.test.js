@@ -3,7 +3,7 @@
 const { describe, it } = require("node:test");
 const assert = require("node:assert");
 
-const { routeVoiceCommand } = require("../src/glassbox-intent");
+const { routeVoiceCommand, routeLocalCommand } = require("../src/glassbox-intent");
 
 describe("glassbox-intent routeVoiceCommand", () => {
   it("approves a pending permission on affirmative speech", () => {
@@ -61,5 +61,28 @@ describe("glassbox-intent routeVoiceCommand", () => {
   it("permission precedence beats clarification for approve/deny words", () => {
     const r = routeVoiceCommand("同意", { permissionPending: true, clarificationPending: true });
     assert.strictEqual(r.action, "approve");
+  });
+});
+
+describe("glassbox-intent routeLocalCommand", () => {
+  it("routes open-Claude text to a local agent launch without the LLM", () => {
+    assert.deepStrictEqual(routeLocalCommand("帮我打开Claude"), {
+      action: "open-agent",
+      target: "claude",
+      text: "帮我打开Claude",
+    });
+    assert.strictEqual(routeLocalCommand("启动 Claude Code").target, "claude");
+    assert.strictEqual(routeLocalCommand("叫出克劳德").target, "claude");
+  });
+
+  it("routes open-Codex and open-terminal text", () => {
+    assert.strictEqual(routeLocalCommand("打开 Codex").target, "codex");
+    assert.strictEqual(routeLocalCommand("帮我打开终端").target, "terminal");
+  });
+
+  it("leaves normal work requests as tasks", () => {
+    const r = routeLocalCommand("用 Claude 帮我整理一下项目");
+    assert.strictEqual(r.action, "task");
+    assert.strictEqual(r.text, "用 Claude 帮我整理一下项目");
   });
 });

@@ -13,6 +13,7 @@ function makeRemote(over = {}) {
     spoken: [],
     permissions: [],
     answers: [],
+    opened: [],
     confirms: 0,
     onComplete: null,
     phases: [],
@@ -26,6 +27,10 @@ function makeRemote(over = {}) {
     getSessionIdle: over.getSessionIdle || (() => false),
     resolvePermission: over.resolvePermission || ((b) => calls.permissions.push(b)),
     onAnswer: over.onAnswer || ((r) => calls.answers.push(r)),
+    openAgent: over.openAgent || ((target, opts) => {
+      calls.opened.push({ target, opts });
+      return { target, label: target === "codex" ? "Codex" : target === "terminal" ? "终端" : "Claude" };
+    }),
     speak: over.speak || ((t) => calls.spoken.push(t)),
     confirmDispatch: over.confirmDispatch || (async () => { calls.confirms++; return true; }),
     getPending: over.getPending || (() => ({})),
@@ -144,6 +149,20 @@ describe("GlassboxRemote", () => {
     await remote.handle("好了吗");
     assert.strictEqual(calls.dispatched.length, 0);
     assert.deepStrictEqual(calls.spoken, ["它还在跑，再等等"]);
+  });
+
+  it("opens Claude locally without asking the LLM", async () => {
+    let orchestrated = false;
+    const { remote, calls } = makeRemote({
+      orchestrate: async () => { orchestrated = true; return { action: "chat", reply: "nope" }; },
+      defaultCwd: "/demo",
+    });
+    const result = await remote.handle("帮我打开Claude");
+    assert.strictEqual(orchestrated, false);
+    assert.strictEqual(result.action, "open-agent");
+    assert.deepStrictEqual(calls.opened, [{ target: "claude", opts: { cwd: "/demo" } }]);
+    assert.deepStrictEqual(calls.phases, ["thinking", "dispatching", "running"]);
+    assert.ok(calls.spoken.some((t) => /Claude/.test(t)));
   });
 
   it("resolves approve/deny through the permission channel", async () => {
@@ -274,6 +293,7 @@ describe("GlassboxRemote onPhase (middle-state feedback)", () => {
     });
     await remote.handle("做事");
     assert.deepStrictEqual(calls.phases, ["thinking", "error"]);
+    assert.ok(calls.spoken.some((t) => /路由模型|LLM|配置/.test(t)));
   });
 
   it("emits error when the dispatch spawn throws", async () => {
