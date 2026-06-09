@@ -29,6 +29,14 @@ class FakeWindow extends EventEmitter {
   setVisibleOnAllWorkspaces(...args) {
     this.calls.push(["setVisibleOnAllWorkspaces", ...args]);
   }
+
+  showInactive() {
+    this.calls.push(["showInactive"]);
+  }
+
+  moveTop() {
+    this.calls.push(["moveTop"]);
+  }
 }
 
 function makeTimers() {
@@ -389,7 +397,7 @@ describe("topmost runtime macOS visibility", () => {
 
     runtime.reapplyMacVisibility();
 
-    for (const window of [win, hitWin, permissionBubble, updateBubble, sessionHud, contextMenuOwner]) {
+    for (const window of [win, permissionBubble, updateBubble, sessionHud, contextMenuOwner]) {
       assert.deepStrictEqual(window.calls, [
         ["setAlwaysOnTop", true, createTopmostRuntime.MAC_TOPMOST_LEVEL],
         ["setVisibleOnAllWorkspaces", true, {
@@ -398,7 +406,35 @@ describe("topmost runtime macOS visibility", () => {
         }],
       ]);
     }
+    assert.deepStrictEqual(hitWin.calls, [
+      ["setAlwaysOnTop", true, createTopmostRuntime.MAC_TOPMOST_LEVEL],
+      ["setVisibleOnAllWorkspaces", true, {
+        visibleOnFullScreen: true,
+        skipTransformProcessType: true,
+      }],
+      ["showInactive"],
+      ["moveTop"],
+    ]);
     assert.strictEqual(stationaryCalls.length, 12);
+  });
+
+  it("lifts the macOS hit window after reapplying shared visibility", () => {
+    const win = new FakeWindow();
+    const hitWin = new FakeWindow();
+    const runtime = createTopmostRuntime({
+      isMac: true,
+      getWin: () => win,
+      getHitWin: () => hitWin,
+      applyStationaryCollectionBehavior: () => true,
+    });
+
+    runtime.reapplyMacVisibility();
+
+    assert.deepStrictEqual(hitWin.calls, [
+      ["setAlwaysOnTop", true, createTopmostRuntime.MAC_TOPMOST_LEVEL],
+      ["showInactive"],
+      ["moveTop"],
+    ]);
   });
 
   it("honors deferred macOS visibility markers", () => {

@@ -86,6 +86,16 @@ function createTopmostRuntime(options = {}) {
     apply(getUpdateBubbleWindow());
     apply(getSessionHudWindow());
     apply(getContextMenuOwner());
+
+    const hitWin = getHitWin();
+    if (isLiveWindow(hitWin)) {
+      try {
+        if (typeof hitWin.showInactive === "function") hitWin.showInactive();
+      } catch {}
+      try {
+        if (typeof hitWin.moveTop === "function") hitWin.moveTop();
+      } catch {}
+    }
   }
 
   function isNearWorkAreaEdge(bounds, tolerance = 2) {
