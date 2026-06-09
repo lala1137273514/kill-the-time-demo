@@ -40,6 +40,36 @@ macOS Apple Silicon demo 包会放在 GitHub Releases：
 
 ## 本地运行
 
+如果没有看到 DMG，或者你在 Windows / Linux 上看 demo，可以从源码启动。
+
+macOS 双击启动：
+
+```text
+start-demo.command
+```
+
+macOS / Linux 终端启动：
+
+```bash
+./start-demo.sh
+```
+
+Windows 双击或命令行启动：
+
+```bat
+start-demo.bat
+```
+
+这些脚本会检查 Node.js/npm，首次运行时自动安装依赖，然后复用项目已有启动命令。
+
+源码启动需要本机已安装 Node.js/npm。macOS 如果提示脚本无权限，执行：
+
+```bash
+chmod +x start-demo.command start-demo.sh
+```
+
+手动启动方式：
+
 ```bash
 node scripts/ensure-sidecar-binaries.js
 node launch.js
