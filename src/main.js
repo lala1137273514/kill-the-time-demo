@@ -3347,6 +3347,7 @@ const _menuCtx = {
   getUpdateMenuItem: () => getUpdateMenuItem(),
   openDashboard: () => showDashboard(),
   showQuotaDashboard: () => showQuotaDashboard(),
+  openGlassboxInput: () => toggleGlassboxInput(),
   getPomodoro: () => ({ state: _pomodoro.state, label: formatRemaining(_pomodoro.snapshot().remainingMs) }),
   pomodoroStartFocus: () => pomodoroStart("focus"),
   pomodoroStartBreak: () => pomodoroStart("break"),
@@ -4057,18 +4058,21 @@ if (!gotTheLock) {
       } catch (err) {
         sessionLog(`glassbox-voice: permission handler failed: ${err && err.message}`);
       }
-      // Default Ctrl+Space (overridable). NOTE: on Windows this collides with
-      // the IME language toggle on some setups — if registration fails, set
-      // CLAWD_GLASSBOX_HOTKEY to something else.
-      // Ctrl+Space opens the input bar (overridable). NOTE: on Windows this can
-      // collide with the IME language toggle — if it fails, set
-      // CLAWD_GLASSBOX_HOTKEY to something else.
-      const accel = _glassboxCfg().hotkey;
-      try {
-        const ok = globalShortcut.register(accel, () => toggleGlassboxInput());
-        sessionLog(`glassbox-voice: input-bar hotkey ${accel} ${ok ? "registered" : "FAILED (conflict? IME?)"}`);
-      } catch (err) {
-        sessionLog(`glassbox-voice: hotkey register threw: ${err && err.message}`);
+      // The configured accelerator stays primary. On macOS, also try
+      // Control+Space as a rescue key because CommandOrControl maps to Command
+      // there and can get swallowed by Spotlight / input-source shortcuts.
+      const inputHotkeys = [_glassboxCfg().hotkey];
+      if (process.platform === "darwin") inputHotkeys.push("Control+Space");
+      const seenInputHotkeys = new Set();
+      for (const accel of inputHotkeys) {
+        if (!accel || seenInputHotkeys.has(accel)) continue;
+        seenInputHotkeys.add(accel);
+        try {
+          const ok = globalShortcut.register(accel, () => toggleGlassboxInput());
+          sessionLog(`glassbox-voice: input-bar hotkey ${accel} ${ok ? "registered" : "FAILED (conflict? IME?)"}`);
+        } catch (err) {
+          sessionLog(`glassbox-voice: input-bar hotkey ${accel} threw: ${err && err.message}`);
+        }
       }
 
       // One-key Demo mode (Ctrl+Shift+D): a fully synthetic showcase of the

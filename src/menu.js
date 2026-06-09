@@ -155,6 +155,12 @@ module.exports = function initMenu(ctx) {
     items.push(
       { type: "separator" },
       {
+        label: t("openInput"),
+        click: () => {
+          if (typeof ctx.openGlassboxInput === "function") ctx.openGlassboxInput();
+        },
+      },
+      {
         label: t("settings"),
         click: () => ctx.openSettingsWindow(),
       },
@@ -337,6 +343,12 @@ module.exports = function initMenu(ctx) {
         click: () => ctx.doNotDisturb ? ctx.disableDoNotDisturb() : ctx.enableDoNotDisturb(),
       },
       { type: "separator" },
+      {
+        label: t("openInput"),
+        click: () => {
+          if (typeof ctx.openGlassboxInput === "function") ctx.openGlassboxInput();
+        },
+      },
       {
         label: t("openDashboard"),
         click: () => {
