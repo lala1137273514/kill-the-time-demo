@@ -28,6 +28,7 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
   const apiCalls = [];
   const apiHandlers = {};
   const area = new FakeArea();
+  let now = 1000;
 
   const fakeDocument = {
     getElementById(id) { return id === "hit-area" ? area : null; },
@@ -81,6 +82,7 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
     clearTimeout: (t) => { if (t) t.cleared = true; },
     requestAnimationFrame: (cb) => context.setTimeout(cb, 16),
     cancelAnimationFrame: (t) => context.clearTimeout(t),
+    Date: { now: () => now },
     console: { warn() {} },
   };
   context.globalThis = context;
@@ -125,7 +127,9 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
   }
 
   function pointermove({ clientX = 100, clientY = 100 } = {}) {
-    fakeDocument._dispatch("pointermove", { clientX, clientY });
+    const areaCb = area.listeners.get("pointermove");
+    if (areaCb) areaCb(eventPayload({ clientX, clientY }));
+    fakeDocument._dispatch("pointermove", eventPayload({ clientX, clientY }));
   }
 
   function pointerenter() {
@@ -166,6 +170,7 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
     contextmenu,
     auxclick,
     fireTimer,
+    advance: (ms) => { now += ms; },
     timers,
     area,
     context,
@@ -334,6 +339,24 @@ describe("hit-renderer input layer", () => {
     assert.deepStrictEqual(
       h.apiCalls.filter((call) => call[0] === "petHoverEnter" || call[0] === "petHoverLeave"),
       [["petHoverEnter"], ["petHoverLeave"]]
+    );
+  });
+
+  it("refreshes the HUD while the cursor stays on the pet after hover is already active", () => {
+    const h = createHarness();
+    h.pointerenter();
+    h.advance(650);
+    h.pointermove();
+    assert.deepStrictEqual(
+      h.apiCalls.filter((call) => call[0] === "revealSessionHud"),
+      []
+    );
+
+    h.advance(60);
+    h.pointermove();
+    assert.deepStrictEqual(
+      h.apiCalls.filter((call) => call[0] === "petHoverEnter" || call[0] === "revealSessionHud"),
+      [["petHoverEnter"], ["revealSessionHud"]]
     );
   });
 });

@@ -48,10 +48,12 @@ const DRAG_THRESHOLD = 3;
 let isReacting = false;
 let isDragReacting = false;
 let lastPetHoverSignalAt = 0;
+let lastPetHoverRefreshAt = 0;
 let petHovering = false;
 let petHoverLeaveTimer = null;
 let lastContextMenuSignalAt = 0;
 const PET_HOVER_SIGNAL_MS = 180;
+const PET_HOVER_REFRESH_MS = 700;
 const PET_HOVER_LEAVE_DELAY_MS = 520;
 const CONTEXT_MENU_COOLDOWN_MS = 350;
 
@@ -294,11 +296,16 @@ function signalPetHoverEnter(force = false) {
   const t = Date.now();
   if (petHovering) {
     lastPetHoverSignalAt = t;
+    if (t - lastPetHoverRefreshAt >= PET_HOVER_REFRESH_MS) {
+      lastPetHoverRefreshAt = t;
+      if (window.hitAPI && window.hitAPI.revealSessionHud) window.hitAPI.revealSessionHud();
+    }
     return;
   }
   if (!force && t - lastPetHoverSignalAt < PET_HOVER_SIGNAL_MS) return;
   petHovering = true;
   lastPetHoverSignalAt = t;
+  lastPetHoverRefreshAt = t;
   if (window.hitAPI && window.hitAPI.petHoverEnter) window.hitAPI.petHoverEnter();
 }
 
