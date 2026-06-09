@@ -216,6 +216,21 @@ describe("pet-window-runtime", () => {
     assert.equal(instances[0].options.type, "toolbar");
   });
 
+  it("keeps macOS hit windows focusable so secondary clicks reach the renderer", () => {
+    const instances = [];
+    const harness = createRuntime({ isWin: false, isMac: true });
+
+    harness.runtime.createHitWindow({
+      BrowserWindow: makeBrowserWindow(instances),
+      preloadPath: "preload-hit.js",
+      loadFilePath: "hit.html",
+      hitThemeConfig: {},
+    });
+
+    assert.equal(instances[0].options.focusable, true);
+    assert.deepStrictEqual(instances[0].calls.filter((call) => call[0] === "setFocusable"), []);
+  });
+
   it("raises the macOS hit window above the render window after creation and sync", () => {
     const instances = [];
     const harness = createRuntime({ isWin: false, isMac: true });

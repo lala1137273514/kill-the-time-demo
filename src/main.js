@@ -260,7 +260,7 @@ function toggleGlassboxInput() {
   if (glassboxInputWin && !glassboxInputWin.isDestroyed()) { closeGlassboxInput(); return; }
   const pathMod = require("path");
   const w = new BrowserWindow({
-    width: 560, height: 188, frame: false, transparent: true, resizable: false,
+    width: 560, height: 224, frame: false, transparent: true, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, show: false, fullscreenable: false, minimizable: false,
     // sandbox:false is REQUIRED for nodeIntegration's require() to work in the
     // inline script; with the Electron default (sandbox:true) the bar's JS would
@@ -1390,6 +1390,17 @@ function narrateGlassboxHudAction(text) {
   try { applyNarratorEffect({ source: "chat", kind: "reply", text }); } catch {}
 }
 
+function runHudMockDemo(action) {
+  const prompts = {
+    progress: "这个项目现在有哪些进程，进展如何？",
+    voice: "不用打开 App，怎么用语音玩 Agent？",
+    orchestra: "演示一下多 Agent 编排和监工。",
+    show: "来一段动画状态机表演。",
+  };
+  const text = prompts[action] || prompts.progress;
+  runGlassboxMockDemo(action, text);
+}
+
 function openGlassboxTerminal() {
   try {
     const cwd = getGlassboxDefaultCwd();
@@ -1463,6 +1474,10 @@ ipcMain.on("glassbox-hud-action", (_e, id) => {
       case "quota": if (_glassboxHud) { _glassboxHud.show(); _glassboxHud.refreshUsage(true); } break;
       case "dashboard": showDashboard(); break;
       case "settings": openSettingsTab("glassbox"); break;
+      case "mock-progress": runHudMockDemo("progress"); break;
+      case "mock-voice": runHudMockDemo("voice"); break;
+      case "mock-orchestra": runHudMockDemo("orchestra"); break;
+      case "mock-show": runHudMockDemo("show"); break;
     }
   } catch {}
 });

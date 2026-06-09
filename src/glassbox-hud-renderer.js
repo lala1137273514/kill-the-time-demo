@@ -18,6 +18,7 @@ const statusStack = document.getElementById("statusStack");
 const usageMeta = document.getElementById("usageMeta");
 const usageGrid = document.getElementById("usageGrid");
 const toolbar = document.getElementById("toolbar");
+const demoToolbar = document.getElementById("demoToolbar");
 let hudInteractive = null;
 
 const ICONS = {
@@ -40,6 +41,13 @@ const BUTTONS = [
   { id: "settings", icon: ICONS.settings, tip: "设置" },
 ];
 
+const DEMO_BUTTONS = [
+  { id: "mock-progress", label: "进展", tip: "Mock：询问项目 / Agent 会话进展" },
+  { id: "mock-voice", label: "语音流", tip: "Mock：演示无 App、语音即按钮" },
+  { id: "mock-orchestra", label: "编排", tip: "Mock：演示多 Agent 编排" },
+  { id: "mock-show", label: "表演", tip: "Mock：演示 Clawd 动画状态机" },
+];
+
 for (const b of BUTTONS) {
   const el = document.createElement("button");
   el.className = "hud-btn";
@@ -49,6 +57,17 @@ for (const b of BUTTONS) {
   el.innerHTML = b.icon;
   el.addEventListener("click", () => ipcRenderer.send("glassbox-hud-action", b.id));
   toolbar.appendChild(el);
+}
+
+for (const b of DEMO_BUTTONS) {
+  const el = document.createElement("button");
+  el.className = "demo-action-btn";
+  el.type = "button";
+  el.title = b.tip;
+  el.setAttribute("aria-label", b.tip);
+  el.textContent = b.label;
+  el.addEventListener("click", () => ipcRenderer.send("glassbox-hud-action", b.id));
+  demoToolbar.appendChild(el);
 }
 
 function escapeHtml(s) {

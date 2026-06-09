@@ -36,6 +36,15 @@ test("HUD action toolbar exposes distinct demo actions", () => {
   ]);
 });
 
+test("HUD exposes visible mock demo actions", () => {
+  assert.match(renderer, /const DEMO_BUTTONS = \[/);
+  for (const id of ["mock-progress", "mock-voice", "mock-orchestra", "mock-show"]) {
+    assert.match(renderer, new RegExp(`id:\\s*"${id}"`));
+  }
+  assert.match(html, /id="demoToolbar"/);
+  assert.match(html, /\.demo-action-btn/);
+});
+
 test("HUD no longer duplicates LLM/TTS/ASR setting shortcuts", () => {
   const block = extractButtonBlock();
   for (const id of ["llm", "tts", "asr"]) {
@@ -45,12 +54,25 @@ test("HUD no longer duplicates LLM/TTS/ASR setting shortcuts", () => {
 
 test("main process handles every HUD quick action", () => {
   const handler = extractHudActionHandler();
-  for (const id of ["chat", "terminal", "folder", "screenshot", "quota", "dashboard", "settings"]) {
+  for (const id of [
+    "chat",
+    "terminal",
+    "folder",
+    "screenshot",
+    "quota",
+    "dashboard",
+    "settings",
+    "mock-progress",
+    "mock-voice",
+    "mock-orchestra",
+    "mock-show",
+  ]) {
     assert.match(handler, new RegExp(`case "${id}"`));
   }
   assert.match(main, /function openGlassboxTerminal/);
   assert.match(main, /function openGlassboxFolder/);
   assert.match(main, /function captureHudScreenshot/);
+  assert.match(main, /function runHudMockDemo/);
 });
 
 test("HUD status card has a compact multi-session stack", () => {

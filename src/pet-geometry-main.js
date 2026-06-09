@@ -6,6 +6,9 @@ const {
   computeThemeAnchorRect: defaultComputeThemeAnchorRect,
 } = require("./visible-margins");
 
+const PET_HIT_PAD_X = 22;
+const PET_HIT_PAD_Y = 18;
+
 function createPetGeometryMain(options = {}) {
   const hitGeometry = options.hitGeometry || defaultHitGeometry;
   const getThemeMarginBox = options.getThemeMarginBox || defaultGetThemeMarginBox;
@@ -67,8 +70,8 @@ function createPetGeometryMain(options = {}) {
       file,
       getCurrentHitBox(),
       {
-        padX: miniMode ? getMiniPeekOffset() : 0,
-        padY: miniMode ? 8 : 0,
+        padX: miniMode ? getMiniPeekOffset() : PET_HIT_PAD_X,
+        padY: miniMode ? 8 : PET_HIT_PAD_Y,
       }
     );
     return hit || getFullHitRect(bounds);

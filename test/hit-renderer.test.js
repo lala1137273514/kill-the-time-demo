@@ -119,6 +119,11 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
     if (cb) cb(eventPayload({ button, pointerId, clientX, clientY, ctrlKey, metaKey }));
   }
 
+  function mousedown({ button = 0, ctrlKey = false, metaKey = false } = {}) {
+    const cb = area.listeners.get("mousedown");
+    if (cb) cb(eventPayload({ button, ctrlKey, metaKey }));
+  }
+
   function pointermove({ clientX = 100, clientY = 100 } = {}) {
     fakeDocument._dispatch("pointermove", { clientX, clientY });
   }
@@ -153,6 +158,7 @@ function createHarness({ isMac = false, sendState = {} } = {}) {
     apiCalls,
     apiHandlers,
     pointerdown,
+    mousedown,
     pointermove,
     pointerup,
     pointerenter,
@@ -203,6 +209,16 @@ describe("hit-renderer input layer", () => {
     const h = createHarness();
     h.pointerdown({ button: 2 });
     h.contextmenu({ button: 2 });
+
+    assert.deepStrictEqual(
+      h.apiCalls.filter((call) => call[0] === "showContextMenu"),
+      [["showContextMenu"]]
+    );
+  });
+
+  it("opens the context menu from right mousedown when pointer events are skipped", () => {
+    const h = createHarness();
+    h.mousedown({ button: 2 });
 
     assert.deepStrictEqual(
       h.apiCalls.filter((call) => call[0] === "showContextMenu"),
@@ -306,7 +322,7 @@ describe("hit-renderer input layer", () => {
     h.pointerenter();
     h.pointerleave();
     h.pointerenter();
-    h.fireTimer((t) => t.ms === 140);
+    h.fireTimer((t) => t.ms === 520);
 
     assert.deepStrictEqual(
       h.apiCalls.filter((call) => call[0] === "petHoverEnter" || call[0] === "petHoverLeave"),
@@ -314,7 +330,7 @@ describe("hit-renderer input layer", () => {
     );
 
     h.pointerleave();
-    h.fireTimer((t) => t.ms === 140);
+    h.fireTimer((t) => t.ms === 520);
     assert.deepStrictEqual(
       h.apiCalls.filter((call) => call[0] === "petHoverEnter" || call[0] === "petHoverLeave"),
       [["petHoverEnter"], ["petHoverLeave"]]

@@ -514,7 +514,6 @@ function createPetWindowRuntime(options = {}) {
     // hitWin has no visual content, so clipping is irrelevant.
     hitWin.setShape([{ x: 0, y: 0, width: initialHitWindowBounds.width, height: initialHitWindowBounds.height }]);
     hitWin.setIgnoreMouseEvents(false); // PERMANENT: never toggle outside settings preview protection.
-    if (isMac) hitWin.setFocusable(false);
     hitWin.showInactive();
     keepOutOfTaskbar(hitWin);
     if (isWin) hitWin.setAlwaysOnTop(true, topmostLevel);

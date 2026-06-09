@@ -52,7 +52,7 @@ let petHovering = false;
 let petHoverLeaveTimer = null;
 let lastContextMenuSignalAt = 0;
 const PET_HOVER_SIGNAL_MS = 180;
-const PET_HOVER_LEAVE_DELAY_MS = 140;
+const PET_HOVER_LEAVE_DELAY_MS = 520;
 const CONTEXT_MENU_COOLDOWN_MS = 350;
 
 // Cancel signal from main (e.g. state change)
@@ -95,6 +95,12 @@ area.addEventListener("pointerdown", (e) => {
     dragReactionDirection = null;
     window.hitAPI.dragLock(true);
     area.classList.add("dragging");
+  }
+});
+
+area.addEventListener("mousedown", (e) => {
+  if (e.button === 2 || (isMac && e.button === 0 && e.ctrlKey && !e.metaKey)) {
+    requestContextMenu(e);
   }
 });
 
@@ -296,7 +302,18 @@ function signalPetHoverEnter(force = false) {
   if (window.hitAPI && window.hitAPI.petHoverEnter) window.hitAPI.petHoverEnter();
 }
 
-function signalPetHoverLeave() {
+function signalPetHoverLeave(event) {
+  if (event && Number.isFinite(event.clientX) && Number.isFinite(event.clientY)) {
+    const pad = 18;
+    if (
+      event.clientX >= -pad
+      && event.clientX <= area.offsetWidth + pad
+      && event.clientY >= -pad
+      && event.clientY <= area.offsetHeight + pad
+    ) {
+      return;
+    }
+  }
   if (petHoverLeaveTimer) clearTimeout(petHoverLeaveTimer);
   petHoverLeaveTimer = setTimeout(() => {
     petHoverLeaveTimer = null;
@@ -317,7 +334,7 @@ area.addEventListener("pointerenter", () => {
 area.addEventListener("pointermove", () => {
   if (!isDragging) signalPetHoverEnter(false);
 });
-area.addEventListener("pointerleave", () => {
+area.addEventListener("pointerleave", (e) => {
   if (isDragging) return;
-  signalPetHoverLeave();
+  signalPetHoverLeave(e);
 });
