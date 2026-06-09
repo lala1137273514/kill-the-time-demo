@@ -1444,8 +1444,14 @@ async function captureHudScreenshot() {
   }
 }
 
-ipcMain.on("pet-hover-enter", () => { try { if (_glassboxHud) _glassboxHud.show(); } catch {} });
-ipcMain.on("pet-hover-leave", () => { try { if (_glassboxHud) _glassboxHud.scheduleDismiss(); } catch {} });
+ipcMain.on("pet-hover-enter", () => {
+  sessionLog("pet-input: hover enter");
+  try { if (_glassboxHud) _glassboxHud.show(); } catch {}
+});
+ipcMain.on("pet-hover-leave", () => {
+  sessionLog("pet-input: hover leave");
+  try { if (_glassboxHud) _glassboxHud.scheduleDismiss(); } catch {}
+});
 ipcMain.on("glassbox-hud-hover", (_e, over) => { try { if (_glassboxHud) { if (over) _glassboxHud.cancelDismiss(); else _glassboxHud.scheduleDismiss(); } } catch {} });
 ipcMain.on("glassbox-hud-action", (_e, id) => {
   try {
@@ -3746,7 +3752,10 @@ function createWindow() {
 
   registerPetInteractionIpc({
     ipcMain,
-    showContextMenu: (event) => showPetContextMenu(event),
+    showContextMenu: (event) => {
+      sessionLog("pet-input: context-menu requested");
+      showPetContextMenu(event);
+    },
     moveWindowForDrag: () => moveWindowForDrag(),
     setIdlePaused: (value) => { idlePaused = !!value; },
     setLowPowerIdlePaused,

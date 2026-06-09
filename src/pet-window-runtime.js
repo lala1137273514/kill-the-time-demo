@@ -360,6 +360,15 @@ function createPetWindowRuntime(options = {}) {
     return { ...hit, left: Math.min(hit.right, seam.boundary) };
   }
 
+  function restoreHitInputLayer(hitWin) {
+    if (!isMac || !isLiveWindow(hitWin)) return;
+    reapplyMacVisibility();
+    try { hitWin.showInactive(); } catch {}
+    try {
+      if (typeof hitWin.moveTop === "function") hitWin.moveTop();
+    } catch {}
+  }
+
   function syncHitWin() {
     const hitWin = getHitWindow();
     const win = getRenderWindow();
@@ -382,6 +391,7 @@ function createPetWindowRuntime(options = {}) {
       hitShapeHeight = h;
       hitWin.setShape([{ x: 0, y: 0, width: w, height: h }]);
     }
+    restoreHitInputLayer(hitWin);
     repositionSessionHud();
   }
 
@@ -509,12 +519,16 @@ function createPetWindowRuntime(options = {}) {
     keepOutOfTaskbar(hitWin);
     if (isWin) hitWin.setAlwaysOnTop(true, topmostLevel);
     reapplyMacVisibility();
+    restoreHitInputLayer(hitWin);
     hitWin.loadFile(optionsArg.loadFilePath);
     if (isWin && typeof optionsArg.guardAlwaysOnTop === "function") {
       optionsArg.guardAlwaysOnTop(hitWin);
     }
     if (typeof optionsArg.onDidFinishLoad === "function") {
-      hitWin.webContents.on("did-finish-load", () => optionsArg.onDidFinishLoad(hitWin));
+      hitWin.webContents.on("did-finish-load", () => {
+        restoreHitInputLayer(hitWin);
+        optionsArg.onDidFinishLoad(hitWin);
+      });
     }
     hitWin.webContents.on("render-process-gone", (_event, details) => {
       if (typeof optionsArg.onRenderProcessGone === "function") {

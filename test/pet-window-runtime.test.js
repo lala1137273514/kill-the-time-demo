@@ -33,6 +33,7 @@ function makeWindow(bounds = { x: 10, y: 20, width: 100, height: 100 }) {
     setAlwaysOnTop: (...args) => calls.push(["setAlwaysOnTop", ...args]),
     setFocusable: (value) => calls.push(["setFocusable", value]),
     showInactive: () => calls.push(["showInactive"]),
+    moveTop: () => calls.push(["moveTop"]),
     hide: () => calls.push(["hide"]),
     loadFile: (file) => calls.push(["loadFile", file]),
     on: (event, cb) => listeners.set(event, cb),
@@ -213,6 +214,29 @@ describe("pet-window-runtime", () => {
 
     assert.equal(instances[0].options.focusable, false);
     assert.equal(instances[0].options.type, "toolbar");
+  });
+
+  it("raises the macOS hit window above the render window after creation and sync", () => {
+    const instances = [];
+    const harness = createRuntime({ isWin: false, isMac: true });
+
+    harness.runtime.createHitWindow({
+      BrowserWindow: makeBrowserWindow(instances),
+      preloadPath: "preload-hit.js",
+      loadFilePath: "hit.html",
+      hitThemeConfig: {},
+    });
+    assert.ok(harness.calls.some((call) => call[0] === "reapplyMacVisibility"));
+    assert.ok(instances[0].calls.some((call) => call[0] === "moveTop"));
+
+    harness.setHitWin(instances[0]);
+    instances[0].calls.length = 0;
+    harness.calls.length = 0;
+    harness.runtime.syncHitWin();
+
+    assert.ok(harness.calls.some((call) => call[0] === "reapplyMacVisibility"));
+    assert.ok(instances[0].calls.some((call) => call[0] === "showInactive"));
+    assert.ok(instances[0].calls.some((call) => call[0] === "moveTop"));
   });
 
   it("materializes virtual bounds into viewport offset and syncs the hit shape once per size", () => {
