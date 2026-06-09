@@ -35,6 +35,10 @@ function lastMeaningfulLine(text) {
   return lines.length ? lines[lines.length - 1] : "";
 }
 
+function agentLabel(agent) {
+  return agent === "codex" ? "Codex" : "Claude";
+}
+
 class GlassboxRemote {
   constructor(deps = {}) {
     const need = (name) => {
@@ -130,6 +134,45 @@ class GlassboxRemote {
         return decision;
       default:
         return decision; // "none" / unknown — stay quiet
+    }
+  }
+
+  dispatchToAgent(transcript, targetAgent) {
+    const text = String(transcript || "").trim();
+    if (!text) return { action: "none" };
+    const agent = targetAgent === "codex" ? "codex" : "claude";
+    const cwd = this.getDefaultCwd();
+    if (!cwd) {
+      this.log(`glassbox-remote: direct ${agent} dispatch has no cwd`);
+      this.onPhase("needs-input");
+      this.speak("我不确定在哪个目录跑，帮我指一下");
+      return { action: "needs-input", targetAgent: agent, text };
+    }
+    const plan = {
+      agent,
+      mode: "new",
+      sessionId: null,
+      cwd,
+      prompt: text,
+    };
+    try {
+      this.onPhase("dispatching");
+      this.log(`glassbox-remote: direct dispatch target=${agent} cwd=${cwd}`);
+      this.dispatchFn(plan, {
+        onComplete: (result) => {
+          const summary = summarizeForSpeech(lastMeaningfulLine(result && result.output));
+          this.speak(summary ? `搞定，${summary}` : `${agentLabel(agent)} 跑完了，结果在终端里`);
+          this.onPhase("done");
+        },
+      });
+      this.onPhase("running");
+      this.speak(`已发送给 ${agentLabel(agent)}`);
+      return { action: "dispatch", direct: true, targetAgent: agent, text };
+    } catch (err) {
+      this.log(`glassbox-remote: direct dispatch failed: ${err && err.message}`);
+      this.onPhase("error");
+      this.speak(`没能发送给 ${agentLabel(agent)}，你看下终端或 PATH 配置`);
+      return { action: "error", targetAgent: agent, error: err && err.message };
     }
   }
 

@@ -165,6 +165,41 @@ describe("GlassboxRemote", () => {
     assert.ok(calls.spoken.some((t) => /Claude/.test(t)));
   });
 
+  it("direct-dispatches the text to Claude without asking the LLM", () => {
+    let orchestrated = false;
+    const { remote, calls } = makeRemote({
+      orchestrate: async () => { orchestrated = true; return { action: "chat", reply: "nope" }; },
+      defaultCwd: "/demo",
+    });
+    const result = remote.dispatchToAgent("检查一下项目", "claude");
+    assert.strictEqual(orchestrated, false);
+    assert.strictEqual(result.direct, true);
+    assert.strictEqual(result.targetAgent, "claude");
+    assert.strictEqual(calls.dispatched.length, 1);
+    assert.strictEqual(calls.dispatched[0].agent, "claude");
+    assert.strictEqual(calls.dispatched[0].cwd, "/demo");
+    assert.strictEqual(calls.dispatched[0].prompt, "检查一下项目");
+    assert.deepStrictEqual(calls.phases, ["dispatching", "running"]);
+    assert.ok(calls.spoken.some((t) => /Claude/.test(t)));
+  });
+
+  it("direct-dispatches the text to Codex", () => {
+    const { remote, calls } = makeRemote({ defaultCwd: "/demo" });
+    const result = remote.dispatchToAgent("跑一下测试", "codex");
+    assert.strictEqual(result.targetAgent, "codex");
+    assert.strictEqual(calls.dispatched[0].agent, "codex");
+    assert.strictEqual(calls.dispatched[0].prompt, "跑一下测试");
+    assert.ok(calls.spoken.some((t) => /Codex/.test(t)));
+  });
+
+  it("direct dispatch asks for a cwd instead of guessing", () => {
+    const { remote, calls } = makeRemote({ defaultCwd: null });
+    const result = remote.dispatchToAgent("做事", "codex");
+    assert.strictEqual(result.action, "needs-input");
+    assert.strictEqual(calls.dispatched.length, 0);
+    assert.deepStrictEqual(calls.phases, ["needs-input"]);
+  });
+
   it("resolves approve/deny through the permission channel", async () => {
     const a = makeRemote({ orchestrate: async () => ({ action: "approve" }) });
     await a.remote.handle("批准");

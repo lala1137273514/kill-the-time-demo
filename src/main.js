@@ -258,7 +258,7 @@ function toggleGlassboxInput() {
   if (glassboxInputWin && !glassboxInputWin.isDestroyed()) { closeGlassboxInput(); return; }
   const pathMod = require("path");
   const w = new BrowserWindow({
-    width: 520, height: 150, frame: false, transparent: true, resizable: false,
+    width: 520, height: 176, frame: false, transparent: true, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, show: false, fullscreenable: false, minimizable: false,
     // sandbox:false is REQUIRED for nodeIntegration's require() to work in the
     // inline script; with the Electron default (sandbox:true) the bar's JS would
@@ -4010,12 +4010,17 @@ if (!gotTheLock) {
       });
       ipcMain.on("glassbox-input-submit", (_evt, payload) => {
         const text = payload && typeof payload.text === "string" ? payload.text.trim() : "";
-        sessionLog(`glassbox-input: submit len=${text.length} remote=${!!glassboxRemote}`);
+        const targetAgent = payload && (payload.targetAgent === "claude" || payload.targetAgent === "codex")
+          ? payload.targetAgent
+          : "";
+        sessionLog(`glassbox-input: submit len=${text.length} target=${targetAgent || "auto"} remote=${!!glassboxRemote}`);
         // Hand off to the pet: close the bar; the on-pet thought bubble carries
         // the live glass-box steps (thinking → … → done).
         closeGlassboxInput();
         if (text && glassboxRemote) {
-          Promise.resolve(glassboxRemote.handle(text))
+          Promise.resolve(targetAgent
+            ? glassboxRemote.dispatchToAgent(text, targetAgent)
+            : glassboxRemote.handle(text))
             .catch((err) => sessionLog(`glassbox-remote: handle failed: ${err && err.message}`));
         }
       });
